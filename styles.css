@@ -1,0 +1,294 @@
+html {
+    font-size: 3vh;
+}
+
+body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    margin: 0;
+    padding: 0;    
+    background: radial-gradient(circle at center top, transparent 0%, rgba(255,255,255,0.125)  68%, transparent 68%), linear-gradient(to bottom, white -100%, #391259 325%);
+}
+
+#content {
+    display: flex;
+    height: 100vh;
+    flex-direction: column;
+    width: 100vw;
+    overflow: hidden;
+}
+
+div.screen {
+    box-sizing: border-box;
+    border-radius: 5px;
+    width: 100vw;
+    height: 100vh;
+    text-align: center;
+    display: flex;
+    flex-shrink: 0;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+div.screen-container {
+    display: flex;
+    overflow: auto;
+    height: fit-content;
+    max-height: 100vh;
+    flex-direction: column;
+    box-sizing: border-box;
+    padding: 2vw;    
+    width: 100%;
+    align-items: center;
+}
+
+body.header div.screen-container {
+    max-height: 90vh;
+}
+
+div.main-logo {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 8vh;    
+}
+
+div.main-logo img {
+    align-self: center;
+}
+
+div.main-logo img#main-logo-icon {
+    height: 25vh;
+}
+
+div.main-logo img#main-logo-name {
+    height: 8vh;
+    padding-top: 3vh;
+}
+
+body.header div.main-logo {
+    display: flex;
+    flex-direction: row;
+    border-bottom: 1px solid #bab0df;
+    width: 100vw;
+    position: absolute;
+    top: 0;
+    left: 0;
+    padding-bottom: 0;
+    background: linear-gradient(to bottom, white 0%, transparent 110%);
+}
+
+body.header div.main-logo img {
+    align-self: center;
+}
+
+body.header div.main-logo img#main-logo-icon {
+    height: 8vh;
+    margin: 1vh;
+}
+
+body.header div.main-logo img#main-logo-name {
+    height: 4vh;
+    width: 16vh;
+    padding-top: 1vh;
+}
+
+body.header div.screen {
+    border-top: 10vh solid transparent;
+}
+
+div.options {
+    flex-direction: row;    
+    margin-bottom: 20px;
+}
+
+textarea,
+input {
+    border: 1px solid #bab0bf;
+    border-radius: 5px;
+    background: linear-gradient(to bottom, white 0%, transparent 162%);
+}
+
+button, label.button, label.sub-button {
+    padding: 10px 20px;
+    background-color: #391259;
+    color: #ffffff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.5rem;
+    cursor: pointer;
+    display: inline-flex;
+    line-height: 125%;
+    align-items: center;
+}
+
+label.button, label.sub-button {
+    position: relative;
+    top: 1px;
+}
+
+button:hover, label.button:hover {
+    background: linear-gradient(to bottom, #531471, #391259);
+}
+
+button.sub-button:hover, label.sub-button:hover {
+    background: linear-gradient(to bottom, #745792, #531471);
+}
+
+button i, label.button i, label.sub-button i {
+    margin-left: 2vh;
+}
+
+i.icon-at-left {
+    margin-left: 0 !important;
+    margin-right: 2vh;
+}
+
+button.sub-button, label.sub-button {
+    background-color: #745792;
+}
+
+h1 {
+    font-size: 1.5rem;
+}
+
+h1,
+p {
+    margin-bottom: 20px;
+}
+
+textarea {
+    width: 80vw;
+    height: 150px;
+    font-size: 1.25rem;
+    padding: 10px;
+    margin-bottom: 10px;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+}
+
+#review-commands-description {
+    text-align: left;
+    font-size: 0.825rem;
+}
+
+div#file-list {
+    border-radius: 1vh;
+    margin-top: 4vh;
+    display: flex;
+    flex-direction: column;
+}
+
+div#file-list div {
+    border-bottom: 1px solid #aaa;
+    display: flex;
+    flex-grow: 1;
+    background: linear-gradient(to bottom, white 0%, transparent 110%);
+}
+
+div#file-list div span {
+    padding: 3vh;
+    display: flex;
+    flex-grow: 1;
+    text-align: left;
+    overflow: hidden;
+}
+
+div#file-list div a.file-list-name {
+    flex-grow: 1;
+    text-align: left;
+    max-width: calc(100vw - 25vh);
+}
+
+span.file-list-order {
+    flex-grow: 0 !important;
+    padding-right: 0 !important;
+}
+
+a.file-list-close {
+    align-items: center;
+    display: flex;
+    text-decoration: none;
+    padding: 0 3vh;
+}
+
+#review-commands {
+    min-height: 2.9rem;
+    box-sizing: content-box;
+    font-size: 1rem;
+    font-size: 0.825rem;
+    background: #000;
+    color: green;
+}
+
+#result-message a {
+    color: inherit;
+    text-decoration: none;
+}
+
+#result-message a:hover {
+    text-decoration: underline;
+}
+
+div#options-icon {
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 10vh;
+    align-items: center;
+    display: flex;
+    justify-content: center;
+    width: 20vh;
+}
+
+div#options-icon a {
+    font-size: 7vh;
+    color: #391259 !important;
+}
+
+#step-98 div {
+    text-align: left;
+}
+
+#step-99 p {
+    display: flex !important;
+    flex-direction: column;
+    margin-bottom: 12px;
+    margin-top: 0;
+}
+
+#step-99 input, #step-99 select {
+    height: 1.5rem;
+    margin-left: 0.5rem;
+    min-width: 70vw;
+    max-width: 96vw;
+}
+
+#step-99 p.option-center {
+    align-items: center;
+}
+
+#step-99 p.option-center span {
+    display: inline-flex;
+    width: fit-content;
+}
+
+#step-99 p.option-center input {
+    min-width: 1rem;
+}
+
+#step-99 p.option-center label {
+    line-height: 175%;
+}
+
+div.screen-container::-webkit-scrollbar {
+    width: 12px; /* width of the entire scrollbar */
+}
+
+div.screen-container::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.05);
+}
+
+div.screen-container::-webkit-scrollbar-thumb {
+    background-color: #745792; /* color of the scroll thumb */
+    border-radius: 6px; /* roundness of the scroll thumb */
+}

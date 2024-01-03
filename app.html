@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Vimer</title>
+        <link rel="stylesheet" type="text/css" href="styles.css" />
+        <link rel="stylesheet" type="text/css" href="node_modules/@fortawesome/fontawesome-free/css/all.min.css" />
+        <meta charset="UTF-8" />
+    </head>
+    <body>
+        <div id="content">
+            <div class="screen" id="step-1">
+                <div class="screen-container">
+                    <div class="main-logo" onclick="leaveScreen()">
+                        <img id="main-logo-icon" src="default_icon.png" />
+                        <img id="main-logo-name" src="assets/images/vimer.png" />
+                    </div>
+                    <input multiple type="file" accept="video/*,audio/*,image/*,text/*,application/x-subrip,application/octet-stream" hidden id="file-input" name="file-input" />
+                    <div class="options">
+                        <label for="file-input" class="button" class="position: relative; top: 1px;">
+                            <i class="fas fa-plus icon-at-left" aria-hidden="true"></i>
+                            <font data-language="SELECT_MEDIA_FILES"></font>
+                        </label>
+                        <button style="display: none;" onclick="step(2)">
+                            <label data-language="GO_NEXT"></label><i class="fas fa-chevron-right" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <div id="file-list"></div>
+                    <div id="options-icon">
+                        <a href="javascript:;" onclick="switchScreen(99)">
+                            <i class="fas fa-cog"></i>
+                        </a>
+                        <a href="javascript:;" onclick="switchScreen(98)" style="margin-left: 2vh;">
+                            <i class="fas fa-info-circle"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="screen" id="step-2">
+                <div class="screen-container">
+                    <h1 data-language="WHAT_TO_DO_FILE"></h1>
+                    <textarea id="userPrompt" data-language="WHAT_TO_DO_FILE_DESCRIBE"></textarea>
+                    <div class="options">
+                        <button onclick="step(1)" class="sub-button" data-language="BACK"></button>
+                        <button onclick="validateUserPrompt()" data-language="GO_NEXT"></button>
+                    </div>
+                </div>
+            </div>
+            <div class="screen" id="step-3">
+                <div class="screen-container">
+                    <img src="assets/images/brain.gif" />
+                    <div class="options" style="display: none;">
+                        <button onclick="step(2)" data-language="BACK"></button>
+                    </div>
+                </div>
+            </div>
+            <div class="screen" id="step-4">
+                <div class="screen-container">
+                    <h1 data-language="REVIEW_CONFIRM"></h1>
+                    <p id="review-commands-description"></p>
+                    <div id="review" style="margin-bottom: 20px;">
+                        <a href="javascript:;" onclick="showReviewCommands(true)" style="color: #000 !important;">
+                            <i class="fas fa-caret-down" aria-hidden="true"></i>
+                            <font data-language="REVIEW_COMMANDS"></font>
+                        </a>
+                        <textarea id="review-commands" style="display: none;"></textarea>
+                    </div>
+                    <div class="options">
+                        <button onclick="step(2)" class="sub-button" data-language="BACK"></button>
+                        <button onclick="confirmReviewCommands()" data-language="GO_NEXT"></button>
+                    </div>
+                </div>
+            </div>
+            <div class="screen" id="step-5">
+                <div class="screen-container">
+                    <h1 id="command-progress">
+                        <i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i>
+                        <font data-language="PROCESSING"></font>
+                        <font id="command-progress-percentage"></font>
+                    </h1>
+                    <div class="options">
+                        <button onclick="cancelCurrentCommand()" data-language="CANCEL"></button>
+                    </div>
+                </div>
+            </div>
+            <div class="screen" id="step-6">
+                <div class="screen-container">
+                    <h1><i class="fas fa-check-circle" aria-hidden="true"></i>
+                        <font data-language="TASK_FINISHED"></font>
+                    </h1>
+                    <div id="result-message"></div>
+                    <div class="options">
+                        <button onclick="step(2)" class="sub-button" data-language="REVIEW_COMMANDS"></button>
+                        <button onclick="newTask()" data-language="NEW_TASK"></button>
+                    </div>
+                </div>
+            </div>
+            <div class="screen" id="step-98">
+                <div class="screen-container">
+                    <h1 data-language="ABOUT"></h1>
+                    <p></p>
+                    <div class="options">
+                        <button data-language="BACK" class="sub-button" id="options-back-button" onclick="previousScreen()"></button>
+                        <button data-language="KNOW_MORE" onclick="app.openExternalURL('https://github.com/EdenwareApps/Vimer')"></button>
+                    </div>
+                </div>
+            </div>
+            <div class="screen" id="step-99">
+                <div class="screen-container">
+                    <h1 data-language="OPTIONS"></h1>
+                    <p>
+                        <label for="openai-api-key">
+                            <font data-language="OPENAI_API_KEY"></font>
+                            (<a href="javascript:;" onclick="app.openExternalURL('https://platform.openai.com/api-keys')"><font data-language="REQUIRED"></font></a>)
+                        </label>
+                        <input type="text" id="openai-api-key" name="openai-api-key" value="" data-language="OPENAI_API_KEY" />
+                    </p>
+                    <p>
+                        <label for="openai-model-name">OpenAI model</label>
+                        <input type="text" id="openai-model-name" name="openai-model-name" value="" data-language="OpenAI model" />
+                    </p>
+                    <p class="option-center">
+                        <span>
+                            <input type="checkbox" id="skip-command-review" name="skip-command-review" />
+                            <label for="skip-command-review" data-language="SKIP_COMMAND_REVIEW"></label>
+                        </span>
+                    </p>
+                    <p class="option-center">
+                        <span>
+                            <input type="checkbox" id="save-log-files" name="save-log-files" />
+                            <label for="save-log-files" data-language="SAVE_LOG_FILES"></label>
+                        </span>
+                    </p>
+                    <p>
+                        <label for="locale" data-language="LANGUAGE"></label>
+                        <select id="locale" name="locale"></select>
+                    </p>
+                    <div class="options">
+                        <button onclick="previousScreen()" data-language="BACK" class="sub-button" id="options-back-button"></button>
+                        <button onclick="saveOptions()" data-language="SAVE"></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script src="assets/scripts/renderer.js"></script>
+    </body>
+</html>

@@ -1,0 +1,31 @@
+{
+    "video": {
+        "mp4": ["libx264", "libx265", "libvpx-vp9", "mpeg4", "libvorbis"],
+        "avi": ["libx264", "mpeg4", "msmpeg4v2"],
+        "mkv": ["libx264", "libx265", "libvpx-vp9"],
+        "mov": ["libx264", "libx265", "mpeg4", "prores"],
+        "flv": ["libx264", "libx265", "libvpx-vp9", "libopus"],
+        "wmv": ["wmv3", "wmv2"],
+        "asf": ["wmv3", "wmv2"],
+        "webm": ["libvpx-vp9", "libvpx"]
+    },
+    "audio": {
+        "aac": ["aac"],
+        "mp3": ["libmp3lame"],
+        "opus": ["libopus"],
+        "vorbis": ["libvorbis", "mp4"],
+        "flac": ["flac"],
+        "wav": ["pcm_s16le", "pcm_f32le", "adpcm_ms", "alac"],
+        "amr": ["amr_nb", "amr_wb"]
+    },
+    "image": {
+        "jpeg": ["mjpeg", "jpegls"],
+        "png": ["png"],
+        "webp": ["libwebp"],
+        "tiff": ["tiff"],
+        "gif": ["gif"],
+        "bmp": ["bmp"],
+        "ico": ["ico"],
+        "svg": ["librsvg"]
+    }
+}
