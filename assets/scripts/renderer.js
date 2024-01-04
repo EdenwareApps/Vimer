@@ -48,7 +48,7 @@ function fileListUpdated() {
         body.className = 'header'
     } else {
         buttons[0].querySelector('font').innerHTML = app.lang.SELECT_MEDIA_FILES
-        buttons[0].className = ''
+        buttons[0].className = 'button'
         buttons[1].style.display = 'none'
         body.className = ''
     }
@@ -79,6 +79,7 @@ function validateUserPrompt() {
         }).finally(() => {
             app.emit('win-progress', 0, 'none')
         })
+        showReviewCommands(false)
     } else {
         step(2)
         alert(app.lang.ENHANCE_DESCRIPTION)
@@ -138,7 +139,7 @@ function confirmReviewCommands() {
         map().forEach(r => {
             content += '<div><i class="fas fa-check-circle" aria-hidden="true"></i> <a href="javascript:;" onclick="app.showItemInFolder(\''+ r.file +'\')">'+ r.file +'</a></div>'
         })
-        content +=  +'<br />'+ app.lang.TASK_FINISHED_HINT.replace('{0}', app.lang.REVIEW_COMMANDS) +'<br /><br />'
+        content += '<br />'+ app.lang.TASK_FINISHED_HINT.replace('{0}', app.lang.REVIEW_COMMANDS) +'<br /><br />'
         document.querySelector('#result-message').innerHTML = content
         step(6)
     }).catch(err => {

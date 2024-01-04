@@ -90,7 +90,18 @@ async function midasGenerate(opts) {
 
 async function midasValidate(opts) {
     console.log('MIDAS VALIDATE')
-    const rxp = '(failed to open|unable to find a suitable|error initializing|has an unconnected output|conversion failed|unrecognized option|cannot be used together)'
+    const failureSigns = [
+        'output with label .{0,12} does not exist',
+        'failed to open',
+        'unable to find a suitable',
+        'error initializing',
+        'has an unconnected output',
+        'conversion failed',
+        'unrecognized option',
+        'cannot be used together',
+        ' matches no streams'
+    ]
+    const rxp = '('+ failureSigns.join('|') +')'
     if(opts.output.match(new RegExp(rxp, 'i'))) {
         let err
         const ret = await global.midas.fixFFmpegCommand(opts).catch(e => err = e)

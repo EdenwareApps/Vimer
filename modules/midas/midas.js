@@ -10,17 +10,28 @@ STRICT RULES:
 - Do not using command piping.
 - Do not use wildcards (like \'%d\').
 - Do not insert placeholders.
+- Use only ffmpeg commands.
 - If using -loop, set -t too to prevent looping endlessly.
+- Use intermediary commands with temp files to reduce any command complexity.
+- Do map not use same filter output twice in a command.
+- Do not output multiple alternatives for the same command.
+- Reduce the CPU usage of the command chain when possible.
 `
-const DESCRIBE_TASK_INSTRUCT = `Briefly define in '{1}' language, in a list, without introduction paragraph in the response, what will be done with the media file on each of the following commands: '{0}'.`
-const FFMPEG_INSTRUCT = `Answer without an introduction paragraph or explanation with one or more FFmpeg commands that are necessary to do the following task: {0}. The input files are: {1}. Output file should be named 'output.**' (replace '.**' with the most appropriated output format extension). Improve command for a better result for the requested task if that is something that is recommendable. `+ FORBIDS
+const DESCRIBE_TASK_INSTRUCT = `Briefly define in '{1}' language, in a list, without introduction paragraph in the response, what will be done with the media file on each of the following commands:
+'{0}'`
+const FFMPEG_INSTRUCT = `Answer without an introduction paragraph or explanation with one or more FFmpeg commands that are necessary to do the following task:
+Task: \`{0}\`.
+Files available: {1}.
+Output file should be named 'output.**' (replace '.**' with the most appropriated output format extension). Improve command for a better result for the requested task if that is something that is recommendable. `+ FORBIDS
 const FFMPEG_IMPROVE_INSTRUCT = `Consider the following chain of commands:
 \`{0}\`
 Being used to attend the following request:
 \`{1}\`
-Command probable effects:
-\`{2}\`
-Compare the desired end results of the request to the command probable effects, looking for possible flaws in using this command to achieve this goal, by checking syntax and predicting what could go different from the desired result. Find solutions to address these failures and return a corrected or improved version of this command chain. After any thoughts, use the separator '----' to indicate the start of the improved commands returned. `+ FORBIDS
+Then do these tasks:
+- Analyze the commands for syntax errors.
+- Compare the desired end results of the request to the command probable effects, looking for possible flaws in using this command to achieve this goal, predicting what could go different from the desired result.
+- If flaws are found, find solutions to address it.
+- After all the thoughts, use the separator '----' and then print a fixed/improved version of this command chain. `+ FORBIDS
 const FFMPEG_IMPROVE_PROMPT = `Answer without an introduction paragraph or explanation. Consider the following request:
 \`{0}\`
 The provided files are: {1}
@@ -80,6 +91,9 @@ class Masker {
         return this.unmaskText(cmd, this.kmap)
     }
     maskText(prompt, masks) {
+        if(!masks) {
+            masks = this.kmap
+        }
         prompt = prompt.replace(new RegExp('\\+', 'g'), '/')
         Object.keys(masks).forEach(name => {
             if(prompt.indexOf(masks[name]) != -1) {
@@ -93,6 +107,9 @@ class Masker {
         return prompt
     }
     unmaskText(prompt, masks) {
+        if(!masks) {
+            masks = this.kmap
+        }
         prompt = prompt.replace(new RegExp('\\+', 'g'), '/')
         Object.keys(masks).forEach(name => {
             if(prompt.indexOf(name) != -1) {
@@ -144,9 +161,6 @@ class Midas {
         })
         this.messages = []
     }
-    async prepare(){
-        return await this.query(preamble, 'system')
-    }
     async query(content, detached, role='user'){
         const message = { role, content }
         if(!detached) {
@@ -155,7 +169,7 @@ class Midas {
         console.log('QUERY='+ content)
         const ret = await this.openai.chat.completions.create({
             messages: detached ? [message] : this.messages.slice(this.messages.length - 3),
-            temperature: 0.2,
+            temperature: 0.1,
             model: this.modelName
             // model: 'text-davinci-003'
         })
@@ -168,8 +182,11 @@ class Midas {
             if(c.endsWith("'") || c.endsWith("`")) {
                 c = c.substr(0, c.length - 1)
             }
+            if(c.indexOf(' && ') != -1) {
+                return c.split(' && ')
+            }
             return c
-        })
+        }).flat()
     }
     invalidCommandSyntax(cmd) { // prevent some common mistakes on improving step
         if(Array.isArray(cmd)) {
@@ -310,7 +327,7 @@ class Midas {
         let output = opts.output.split("\n").map(s => s.trim()).filter(s => s)
         output = this.masker.maskText(output.slice(output.length - 8).join("\n"))
         const cmd = this.masker.maskCommand(opts.cmd)
-        const ret = await this.query(FFMPEG_FIX_INSTRUCT.format(cmd, output))
+        const ret = await this.query(FFMPEG_FIX_INSTRUCT.format(cmd, output), false)
         console.log('FIXING FEEDBACK=', ret)
         const receivedCommands = this.extractCommands(ret)
         return this.masker.unmaskCommand(receivedCommands.pop())
