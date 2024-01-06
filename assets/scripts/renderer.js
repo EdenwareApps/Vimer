@@ -67,6 +67,7 @@ function validateUserPrompt() {
         midas().then(ret => {
             document.querySelector('#review-commands').value = ret.commands.join("\n\n")
             document.querySelector('#review-commands-description').innerText = ret.description
+            currentCommandData = ret
             if(app.config.get('skip-command-review') === true) {
                 confirmReviewCommands()
             } else {
@@ -109,7 +110,7 @@ function trimQuotes(file) {
     return file
 }
 
-var currentCommand
+var currentCommand, currentCommandData
 function confirmReviewCommands() {
     step(5)
     let progress = 0
@@ -136,8 +137,8 @@ function confirmReviewCommands() {
     })
     queue.start().then(() => {
         let content = app.lang.SAVED_ON +'<br />'
-        map().forEach(r => {
-            content += '<div><i class="fas fa-check-circle" aria-hidden="true"></i> <a href="javascript:;" onclick="app.showItemInFolder(\''+ r.file +'\')">'+ r.file +'</a></div>'
+        currentCommandData.outputFiles.forEach(file => {
+            content += '<div><i class="fas fa-check-circle" aria-hidden="true"></i> <a href="javascript:;" onclick="app.showItemInFolder(\''+ file +'\')">'+ file +'</a></div>'
         })
         content += '<br />'+ app.lang.TASK_FINISHED_HINT.replace('{0}', app.lang.REVIEW_COMMANDS) +'<br /><br />'
         document.querySelector('#result-message').innerHTML = content
@@ -149,17 +150,12 @@ function confirmReviewCommands() {
             console.error(err)
             alert(err)
         }
-    }).finally(() => {        
+    }).finally(() => {   
+        app.emit('delete-temp-files', currentCommandData.tempFiles)
         if(app.config.get('save-log-files')) {
-            let j = 0
-            map().forEach(r => {
-                let output = ''
-                for(; j <= r.i; j++) {
-                    output += queue.processes[r.i].cmd.join(' ')
-                    output += "\n\n"+ queue.outputs[r.i] +"\n\n"
-                }
-                app.emit('save-log-file', r.file +'.log', output)
-            })
+            app.emit('save-log-file', currentCommandData.outputFiles[currentCommandData.outputFiles.length - 1] +'.log', queue.processes.map((p, i) => {
+                return 'ffmpeg '+ p.cmd.join(' ') +"\n\n"+ queue.outputs[i]
+            }).join("\n\n"))
         }
     })
     showReviewCommands(false)
@@ -175,6 +171,7 @@ function newTask() {
 function cancelCurrentCommand() {
     step(2)
     currentCommand.abort()
+    app.emit('win-progress', 0, 'none')
 }
 
 function showReviewCommands(show) {
@@ -226,6 +223,7 @@ function loadOptions(opts={}) {
     document.querySelector('#openai-model-name').value = app.config.get('openai-model-name') || ''
     document.querySelector('#save-log-files').checked = app.config.get('save-log-files') === true
     document.querySelector('#skip-command-review').checked = app.config.get('skip-command-review') === true
+    document.querySelector('#command-optimization-level').selectedIndex = app.config.get('command-optimization-level') || 0
     document.querySelector('#locale').innerHTML = Object.keys(app.availableLanguages).map(k => {
         const selected = k == app.locale ? 'selected' : ''
         return '<option value="'+ k +'" '+ selected +'>'+ app.availableLanguages[k] +'</option>'
@@ -241,9 +239,11 @@ function saveOptions() {
     const l = document.querySelector('#locale')
     const s = document.querySelector('#skip-command-review')
     const g = document.querySelector('#save-log-files')
+    const c = document.querySelector('#command-optimization-level')
     app.config.set('openai-api-key', k.value.trim())
     app.config.set('openai-model-name', m.value.trim())
     app.config.set('locale', l.querySelectorAll('option')[l.selectedIndex].value)
+    app.config.set('command-optimization-level', c.querySelectorAll('option')[c.selectedIndex].value)
     app.config.set('skip-command-review', s.checked)
     app.config.set('save-log-files', g.checked)
     leaveScreen()
@@ -282,6 +282,7 @@ function parseFileInfo(info) {
         if(info[k]) {
             let n = info[k]
             if(k == 'codecs') n = Object.values(n).filter(s => s).join(',')
+            else if(k == 'duration') n += ' secs'
             ret.push(k +': '+ n)
         }
     })

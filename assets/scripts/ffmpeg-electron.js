@@ -1,7 +1,7 @@
 const fs = require('fs'), path = require('path'), Events = require('events')
 
-const EXECUTABLE = process.platform == 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
-const EXECUTABLEDIR = process.resourcesPath || path.resolve('ffmpeg')
+let EXECUTABLE = process.platform == 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
+let EXECUTABLEDIR = (process.resourcesPath || path.resolve('ffmpeg')).replace(new RegExp('\\\\+','g'), '/')
 
 class FFmpegBase extends Events {
 	constructor(){

@@ -4,6 +4,7 @@
    "ADD_MORE_FILES": "إضافة المزيد من الملفات",
    "BACK": "للعودة",
    "CANCEL": "يلغي",
+   "COMMAND_OPTIMIZATION_LEVEL": "مستوى تحسين القيادة (يستهلك المزيد في API)",
    "ENHANCE_DESCRIPTION": "صف أفضل ما تريد فعله بملفات الوسائط الخاصة بك.",
    "GO_NEXT": "الخطوة التالية",
    "KNOW_MORE": "تعرف أكثر",

@@ -45,8 +45,8 @@ if(global.cordova){
 }
 
 Object.keys(global.paths).forEach(k => {
-    global.paths[k] = forwardSlashes(global.paths[k])
-    console.log('DEFAULT PATH ' + k + '=' + global.paths[k])
+    global.paths[k] = global.forwardSlashes(global.paths[k])
+    console.log('DEFAULT PATH '+ k + '=' + global.paths[k])
     fs.mkdir(global.paths[k], {}, () => {})
 })
 
@@ -54,7 +54,9 @@ const Midas = require('./modules/midas')
 const Bridge = require('./modules/bridge')
 
 global.config = require('./modules/config')(global.paths['data'] + '/config.json')
-global.midas = new Midas()
+global.midas = new Midas({
+    cwd: global.paths.temp
+})
 
 function askOpenAIKey() {
     return new Promise(resolve => {
@@ -68,11 +70,11 @@ async function midasGenerate(opts) {
     global.midas.load(global.config.get('openai-api-key'))
     let err
     const currentModelName = global.config.get('openai-model-name')
-    if(currentModelName && currentModelName != global.midas.modelName) {
-        global.midas.modelName = currentModelName
+    if(currentModelName && currentModelName != global.midas.opts.modelName) {
+        global.midas.opts.modelName = currentModelName
     }
     global.midas.skipDescription = global.config.get('skip-command-review')
-    global.midas.currentLanguage = global.lang.LANGUAGE_NAME +' ('+ global.lang.locale.toUpperCase() +')'
+    global.midas.opts.language = global.lang.LANGUAGE_NAME +' ('+ global.lang.locale.toUpperCase() +')'
     const ret = await global.midas.getFFmpegCommands(opts.prompt, opts.files).catch(e => err = e)
     if(err) {
         if(String(err).indexOf('API key') != -1) {
@@ -91,6 +93,8 @@ async function midasGenerate(opts) {
 async function midasValidate(opts) {
     console.log('MIDAS VALIDATE')
     const failureSigns = [
+        'unknown encoder',
+        'cannot be used together',
         'output with label .{0,12} does not exist',
         'failed to open',
         'unable to find a suitable',
@@ -161,6 +165,11 @@ async function createWindow() {
     global.ui.on('midas-validate', midasValidate)
     global.ui.on('midas-clear', () => global.midas.clear()) // clear conversation
     global.ui.on('win-progress', (p, mode) => win.setProgressBar(p, {mode}))
+    global.ui.on('delete-temp-files', async files => {
+        for(const file of files) {
+            await fs.promises.unlink(file).catch(console.error)
+        }
+    })
     global.ui.on('save-log-file', (file, log) => {
         console.log('SAVELOG', file)
         fs.writeFile(file, log, err => err && console.error(err))

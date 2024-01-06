@@ -4,6 +4,7 @@
    "ADD_MORE_FILES": "Agrega mas archivos",
    "BACK": "Volver",
    "CANCEL": "Cancelar",
+   "COMMAND_OPTIMIZATION_LEVEL": "Nivel de optimización de comandos (consume más en API)",
    "ENHANCE_DESCRIPTION": "Describa mejor lo que desea hacer con sus archivos multimedia.",
    "GO_NEXT": "Proximo paso",
    "KNOW_MORE": "Sepa mas",

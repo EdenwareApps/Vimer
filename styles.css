@@ -252,7 +252,7 @@ div#options-icon a {
 #step-99 p {
     display: flex !important;
     flex-direction: column;
-    margin-bottom: 12px;
+    margin-bottom: 1.5vh;
     margin-top: 0;
 }
 

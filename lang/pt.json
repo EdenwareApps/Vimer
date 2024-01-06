@@ -4,6 +4,7 @@
    "ABOUT_VIMER": "O {0} é um aplicativo que oferece uma interface intuitiva e descomplicada para o ajuste de áudio e vídeo.\n\nVocê só precisa escolher os arquivos que deseja alterar, descrever o que você quer e deixar a inteligência artificial cuidar do resto, gerando automaticamente e executando os comandos necessários do FFmpeg. Esqueça códigos complicados.\n\nSeja convertendo formatos, ajustando a qualidade, adicionando efeitos, ajustando áudio ou misturando diferentes mídias, o Vimer oferece um caminho simples, sem a necessidade de conhecimentos técnicos avançados.\n\nQuanto à segurança, aplicativo executa exclusivamente comandos do FFmpeg e permite que você revise e edite os comandos antes de executá-los se desejar.",
    "BACK": "Voltar",
    "CANCEL": "Cancelar",
+   "COMMAND_OPTIMIZATION_LEVEL": "Nível de otimização de comandos (consome mais na API)",
    "ENHANCE_DESCRIPTION": "Descreva melhor o que você deseja fazer com seus arquivos de mídia.",
    "GO_NEXT": "Próximo passo",
    "KNOW_MORE": "Saiba mais",

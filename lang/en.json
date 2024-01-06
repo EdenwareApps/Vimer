@@ -4,6 +4,7 @@
    "ADD_MORE_FILES": "Add more files",
    "BACK": "Back",
    "CANCEL": "Cancel",
+   "COMMAND_OPTIMIZATION_LEVEL": "Command optimization level (consumes more in API)",
    "ENHANCE_DESCRIPTION": "Describe better what you want to do with your media files.",
    "GO_NEXT": "Next step",
    "KNOW_MORE": "Know more",
