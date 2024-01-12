@@ -1,6 +1,6 @@
 # Vimer
 <p align="center">
-  <img src="https://edenware.app/vimer/files/vimer-box.png" width="217" height="275" alt="Vimer logo" title="Vimer logo" />
+  <img src="https://edenware.app/vimer/files/box.png" width="217" height="275" alt="Vimer logo" title="Vimer logo" />
 </p>
 Vimer (VIdeo transforMER) is an AI powered app with a hassle-free interface for adjusting audio and video.
 <br /><br />
