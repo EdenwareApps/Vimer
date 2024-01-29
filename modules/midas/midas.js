@@ -412,8 +412,9 @@ class Midas {
     }
     async generateOutputFilename(file, referenceFile) {
         let i = 1
+        const outputDir = global.forwardSlashes(path.dirname(referenceFile || file))
         const hasTempOutputName = file.split('/').pop().match(new RegExp('(output|te?mp)', 'i'))
-        const preferredFileName = referenceFile && hasTempOutputName ? referenceFile : file
+        const preferredFileName = outputDir +'/'+ path.basename(referenceFile && hasTempOutputName ? referenceFile : file)
         const outputExt = this.getExt(file, referenceFile)
         const baseLocalOutputfileName = preferredFileName.replace(new RegExp('.vimer[0-9\\-]*.'), '.')
         let localOutputFile = baseLocalOutputfileName.replace(new RegExp('\\.([A-Za-z0-9]{2,5})$'), '.vimer.'+ outputExt)

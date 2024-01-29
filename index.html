@@ -13,16 +13,56 @@
 			}
 			iframe {
 				position: absolute;
-				top: 0;
+				top: 30px;
 				width: 100vw;
-				height: 100vh;
+				height: calc(100vh - 30px);
 				z-index: 0;
+			}
+			header#custom-frame {
+				background: #d0cce0;
+			}
+			header#custom-frame .cf-title {
+				font-weight: bold;
+			}
+			header#custom-frame i {
+				color: #391259;
+			}
+			.cf-btn:hover:not(.cf-close) {
+				background-color: #c1b4cb;
+			}
+			.cf-close:hover * {
+				color: white !important;
+			}
+			.cf-title img {
+				width: 49px;
+				height: 13px;
+				position: relative;
+				top: 1px;
 			}
         </style>
     </head>
     <body>
-		<iframe src="about:blank" frameborder="0" scrolling="no" allow="fullscreen; autoplay"></iframe>
+		<iframe src="about:blank" frameborder="0" scrolling="no" allow="fullscreen; autoplay"></iframe>		
+		<script type="text/javascript" src="assets/custom-frame/custom-frame.js"></script>
+        <script src="./assets/scripts/events.js"></script>
         <script src="./modules/bridge/client.js"></script>
         <script src="./assets/scripts/ffmpeg-electron.js"></script>
+		<script src="./node_modules/jquery/dist/jquery.js"></script>
+		<script>				
+			CustomFrame.attach(window, {
+				icon: './default_icon.png',
+				uiIconsTheme: './assets/custom-frame/icons/css/cf-fa.css',
+				style: './assets/custom-frame/custom-frame-core.css',
+				frameTheme: './assets/custom-frame/custom-frame-theme.css',
+				frameIconSize: 21,
+				size: 30,
+				win: api.window,
+				details: {
+					title: 'Vimer',
+					icon: './default_icon.png'
+				}
+			})
+			document.querySelector('.cf-title').innerHTML = `<img src="assets/images/vimer.png" />`
+		</script>
     </body>
 </html>

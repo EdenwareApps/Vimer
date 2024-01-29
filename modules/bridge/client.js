@@ -1,44 +1,4 @@
-
-class EventEmitter {
-	constructor() {
-		this.events = {};
-	}
-	on(event, listener) {
-		if (typeof this.events[event] !== 'object') {
-			this.events[event] = [];
-		}
-		this.events[event].push(listener);
-		return () => this.removeListener(event, listener);
-	}
-	removeListener(event, listener) {
-		if (typeof this.events[event] === 'object') {
-			const idx = this.events[event].indexOf(listener);
-			if (idx > -1) {
-				this.events[event].splice(idx, 1);
-			}
-		}
-	}
-	removeAllListener(event) {
-		delete this.events[event]
-	}
-	listenerCount(event) {
-		return this.events[event].length
-	}
-	listeners(event) {
-		return this.events[event] ? this.events[event].slice(0) : []
-	}
-	emit(event, ...args) {
-		if (typeof this.events[event] === 'object') {
-			this.events[event].forEach(listener => listener.apply(this, args))
-		}
-	}
-	once(event, listener) {
-		const remove = this.on(event, (...args) => {
-			remove();
-			listener.apply(this, args);
-		});
-	}
-}
+var lang, config, nodejs, channel, app = document.querySelector('iframe').contentWindow
 
 class BridgeConfig extends EventEmitter {
 	constructor(master) {
@@ -61,26 +21,25 @@ class BridgeConfig extends EventEmitter {
 
 class BridgeClient extends EventEmitter {
 	constructor() {
-		super()
+        super()
+		this.isLoaded = {frontend: false, backend: false}
 		this.localEmit = super.emit
 		this.availableLanguages = {'en': 'English'}
 		this.config = new BridgeConfig(this)
-		this.isLoaded = {frontend: false, backend: false}
-		this.once('backend-ready', (...args) => this.loaded('backend', ...args))
+		this.on('get-lang', () => this.channelGetLangCallback())
+		this.once('frontend', () => (...args) => this.loaded('frontend', ...args))
+		this.once('backend', (...args) => this.loaded('backend', ...args))
 		this.once('available-languages', (ret, locale) => {
 			this.locale = locale
 			this.availableLanguages = ret
 		})
-		this.on('get-lang', () => this.channelGetLangCallback())
-		this.on('lang', (texts, locale) => {
-			this.lang = texts
-			this.locale = locale
-		})
 		if (window.cordova) {
 			this.configureCordovaChannel()
+			this.startNodeMainScript()
 		} else {
 			this.configureElectronChannel()
-		}		
+			this.channelGetLangCallback()
+		}
 	}
 	loaded(origin, ...args) {
 		this.isLoaded[origin] = true
@@ -95,87 +54,79 @@ class BridgeClient extends EventEmitter {
 			this.localEmit('load')
 		}
 	}
-	configureCordovaChannel() {
-		this.channel = window.nodejs.channel
-		this.channel.on('message', (...args) => {
-			this.channelCallback.apply(this, args[0])
-		})
-		window.nodejs.start('main.js', err => {
-			err && this.localEmit('log', String(err))
+	startNodeMainScript() {
+		window.parent.nodejs.start('main.js', err => {
+			err && log(String(err))
 			this.channelGetLangCallback()
+			updateSplashProgress()
 			console.log('Node main script loaded.')
 		}, {
 			redirectOutputToLogcat: true
 		})
 	}
+	configureCordovaChannel() {
+		fakeUpdateProgress()
+		this.channel = window.parent.nodejs.channel
+		this.channel.on('message', args => this.localEmit(...args))
+	}
 	configureElectronChannel() {
-		const bridgeChannel = this
+		const bridge = this
 		class ElectronChannel extends EventEmitter {
 			constructor() {
 				super()
-				this.electron = require('electron')
 				this.originalEmit = this.emit.bind(this)
-				this.emit = (...args) => this.post('', Array.from(args))
+				this.emit = (...args) => parent.api.window.emit(...args)
 				this.connect()
 			}
-			connect() {
-				if (this.connected) return
-				this.io = this.electron.ipcRenderer
-				this.io.on('message', (...args) => {
-					bridgeChannel.channelCallback.apply(bridgeChannel, args.slice(1))
-				})
+			connect(){
+				if(this.connected) return
+				parent.api.window.on('message', args => bridge.localEmit(...args))
 				this.connected = true
 			}
 			post(_, args) {
 				this.connect()
-				if (this.io) {
-					this.io.send('message', args)
-				} else {
-					console.error('POST MISSED?', JSON.stringify({_, args}))
-				}
+				this.emit(...args)
 			}
 		}
 		this.channel = new ElectronChannel()
-		this.channelGetLangCallback()
 	}
-	showItemInFolder(path) {
-		this.channel.electron && this.channel.electron.shell.openPath(path)
-	}
-	channelCallback(...args) {
-		setTimeout(() => { // async to prevent blocking main
-			this.localEmit.apply(this, Array.from(args))
-		}, 0)
-	}
-	channelGetLangCallback() {
+	channelGetLangCallback(){
 		var next = lng => {
-			if (!lng) {
+			if(!lng){
 				lng = window.navigator.userLanguage || window.navigator.language
 			}
 			// prevent "Intl is not defined"
-			this.emit('get-lang-callback',
-				lng,
+			this.emit('get-lang-callback', 
+				lng, 
 				{
 					name: (Intl || parent.Intl).DateTimeFormat().resolvedOptions().timeZone,
 					minutes: (new Date()).getTimezoneOffset() * -1
 				},
-				window.navigator.userAgent,
+				window.navigator.userAgent, 
 				window.navigator.onLine
 			)
 		}
-		if (window.cordova) {
+		if(window.cordova){
 			navigator.globalization.getPreferredLanguage(language => next(language.value), () => next())
 		} else {
 			next()
 		}
 	}
-	emit() {
-		this.channel.post('message', Array.from(arguments))
+    emit(...args){
+        this.channel.post('message', Array.from(args))
+    }
+	waitBackend(f) {
+		if(this.isLoaded.backend) return f()
+		this.once('backend', f)
+	}
+	showItemInFolder(path) {
+		parent.api && parent.api.openPath(path)
 	}
 	openExternalURL(url) {
 		if (parent.navigator.app) {
 			parent.navigator.app.loadUrl(url, { openExternal: true })
-		} else if (this.channel.electron && this.channel.electron.shell) {
-			this.channel.electron.shell.openExternal(url)
+		} else if (parent.api) {
+			parent.api.openExternal(url)
 		} else {
 			window.open(url)
 		}
@@ -189,5 +140,5 @@ ifr.addEventListener('load', function () {
 	appChannel.on('load', () => app.loaded())
 	appChannel.on('lang', () => setTimeout(() => app.langUpdated(), 0))
 	appChannel.loaded('frontend')
-})
+}, {once: true})
 ifr.src = './app.html'

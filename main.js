@@ -135,13 +135,23 @@ async function checkForUpdates() {
 }
 
 async function createWindow() {
+    const contextIsolation = parseFloat(process.versions.electron) >= 22
+    contextIsolation && require('@electron/remote/main').initialize()
     const { app, BrowserWindow } = require('electron')
-
+    if(contextIsolation){
+        app.on('browser-window-created', (_, window) => {
+            require('@electron/remote/main').enable(window.webContents)
+        })
+    }
     await app.whenReady()
-    const win = new BrowserWindow({
+    const win = global.window = new BrowserWindow({
         width: 800,
         height: 500,
         autoHideMenuBar: true,
+        frame: false,
+        maximizable: false, // macos
+        minimizable: false, // macos
+        titleBarStyle: 'hidden',
         webPreferences: {
             defaultEncoding: 'UTF-8',
             cache: false,
@@ -149,11 +159,12 @@ async function createWindow() {
             fullscreenable: true,
             disablePreconnect: true,
             dnsPrefetchingEnabled: false,
-            contextIsolation: false, // false is required for nodeIntegration
-            nodeIntegration: true,
+            contextIsolation, // false is required for nodeIntegration
+            nodeIntegration: false,
             nodeIntegrationInWorker: false,
             nodeIntegrationInSubFrames: false,
             enableRemoteModule: true,
+            preload: global.forwardSlashes(__dirname + '/preload.js'),
             experimentalFeatures: true, // audioTracks support
             webSecurity: false // desabilita o webSecurity
         }
@@ -161,6 +172,7 @@ async function createWindow() {
     win.setMenuBarVisibility(false)
     win.loadFile('index.html')
     global.ui = new Bridge({win, config})
+    global.ui.setElectronWindow(window)
     global.ui.on('midas-generate', midasGenerate)
     global.ui.on('midas-validate', midasValidate)
     global.ui.on('midas-clear', () => global.midas.clear()) // clear conversation

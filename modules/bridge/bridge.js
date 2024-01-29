@@ -3,7 +3,7 @@ const fs = require('fs'), url = require('url')
 const formidable = require('formidable'), closed = require('../on-closed')
 const Lang = require('../lang')
 
-class BaseCustomEmitter extends Events {
+class BaseChannel extends Events {
     constructor (){
         super()
         this.originalEmit = this.emit
@@ -13,9 +13,23 @@ class BaseCustomEmitter extends Events {
     onMessage(args){
         setTimeout(() => this.originalEmit.apply(this, args), 0) // async to prevent blocking renderer
     }
+    prepareSerialization(value) {
+        if (Array.isArray(value)) {
+            return value.map(item => this.prepareSerialization(item))
+        } else if (typeof(value) == 'object' && value !== null) {
+            const ret = {}
+            Object.keys(value).forEach(k => {
+                if(typeof(value[k]) != 'function') ret[k] = this.prepareSerialization(value[k])
+            })
+            return ret
+        } else {
+            if(typeof(value) == 'function') return null
+            return value
+        }
+    }
 }
 
-class CordovaCustomEmitter extends BaseCustomEmitter {
+class CordovaChannel extends BaseChannel {
     constructor (){
         super()
         this.attach()
@@ -32,21 +46,15 @@ class CordovaCustomEmitter extends BaseCustomEmitter {
     }
 }
 
-class ElectronCustomEmitter extends BaseCustomEmitter {
-    constructor (win){
+class ElectronChannel extends BaseChannel {
+    constructor(){
         super()
-        const { ipcMain } = require('electron')
-        this.webContents = win.webContents
-        this.outChannel = ipcMain
-        this.outChannel.on('message', (_, args) => {
-            this.onMessage(args)
-        })
-        this.inChannel = new Events()
-        this.inChannel.on('message', args => this.onMessage(args)) // will be called from main through getGlobal, as ipcRenderer was not defined at renderer (?!)
     }
     customEmit(...args){
-        this.webContents.send('message', ...args)
-    }
+        this.window && !this.window.closed && this.window.webContents.send('message', 
+            this.prepareSerialization(args)
+        )
+    }    
 }
 
 class BridgeServer extends Events {
@@ -208,6 +216,9 @@ class BridgeUtils extends BridgeServer {
             return await fs.promises.readFile(resolveFile)
         }
     }
+    setElectronWindow(win) {
+        this.channel.window = win
+    }
 }
 
 class Bridge extends BridgeUtils {
@@ -215,11 +226,12 @@ class Bridge extends BridgeUtils {
         super(opts)
         this.config = opts.config
         if(global.cordova){
-            this.setClient(new CordovaCustomEmitter())
+            this.channel = new CordovaChannel()
         } else {
-            this.setClient(new ElectronCustomEmitter(this.opts.win))
+            this.channel = new ElectronChannel()
         }
-        this.client.on('get-lang-callback', (locale, timezone, ua, online) => {
+        this.channel.setMaxListeners && this.channel.setMaxListeners(20)
+        this.channel.on('get-lang-callback', (locale, timezone, ua, online) => {
             if(ua && ua != this.config.get('default-user-agent')){
                 this.config.set('default-user-agent', ua)
             }
@@ -227,7 +239,7 @@ class Bridge extends BridgeUtils {
                 this.lang = global.lang = new Lang(locale, this.config.get('locale'), global.APPDIR +'/lang', timezone)
                 this.lang.ready().catch(global.displayErr).finally(() => {
                     console.error('BACKEND READY!!')
-                    this.emit('backend-ready', this.config.all(), this.lang.getTexts(), global.paths, global.MANIFEST)
+                    this.emit('backend', this.config.all(), this.lang.getTexts(), global.paths, global.MANIFEST)
                 })
                 this.lang.load().then(() => {
                     this.lang.availableLocalesMap().then(ret => {
@@ -249,33 +261,29 @@ class Bridge extends BridgeUtils {
             }
         })
     }
-    setClient(socket){
-        this.client = socket  
-        this.client.setMaxListeners && this.client.setMaxListeners(20)
-    }
     on(...args){
-        this.client.on(...args)
+        this.channel.on(...args)
     }
     once(...args){
-        this.client.once(...args)
+        this.channel.once(...args)
     }
     emit(...args){
-        return this.client.emit(...args)
+        return this.channel.emit(...args)
     }
     listenerCount(type){
         return this.listeners(type).length
     }
     listeners(type){
-        return this.client.listeners(type)
+        return this.channel.listeners(type)
     }
     removeListener(...args){
-        return this.client.removeListener(...args)
+        return this.channel.removeListener(...args)
     }
     removeAllListeners(...args){
-        return this.client.removeAllListeners(...args)
+        return this.channel.removeAllListeners(...args)
     }
     localEmit(...args){
-        this.client.originalEmit(...args)
+        this.channel.originalEmit(...args)
     }
     destroy(){
         if(this.server){

@@ -17,6 +17,7 @@ function step(n) {
 }
 
 function langUpdated(){
+    console.warn('lll', {app})
     Array.from(document.querySelectorAll('[data-language]')).forEach(e => {
         const key = e.getAttribute('data-language'), tag = e.tagName.toLowerCase(), val = app.lang[key] || key
         if(!key) return
@@ -46,11 +47,13 @@ function fileListUpdated() {
         buttons[0].className = 'sub-button'
         buttons[1].style.display = 'inline-block'
         body.className = 'header'
+        parent.parent.document.querySelector('header').style.background = 'linear-gradient(to bottom, white, #d0cce0 250%)'
     } else {
         buttons[0].querySelector('font').innerHTML = app.lang.SELECT_MEDIA_FILES
         buttons[0].className = 'button'
         buttons[1].style.display = 'none'
         body.className = ''
+        parent.parent.document.querySelector('header').style.background = '#d0cce0'
     }
 }
 
@@ -326,6 +329,7 @@ document.querySelector('#file-input').addEventListener('change', event => {
 })
 
 function loaded() {
+    console.warn('LOADED')
     langUpdated()
     app.on('ask-openai-api-key', () => {
         loadOptions({badApiKey: true})
@@ -346,3 +350,15 @@ function loaded() {
         }
     })
 }
+
+document.body.addEventListener('dblclick', event => {
+    console.error('DBLCLICK')
+    const valid = event.clientY < 60
+    if(valid) {
+        if (parent.parent.api.window.isMaximized()) {
+            parent.parent.api.window.restore()
+        } else {
+            parent.parent.api.window.maximize()
+        }
+    }
+})

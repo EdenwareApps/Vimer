@@ -77,6 +77,12 @@ body.header div.main-logo {
     background: linear-gradient(to bottom, white 0%, transparent 110%);
 }
 
+@media (min-width: 600px) {
+    body.header div.main-logo {
+        justify-content: center;
+    }
+}
+
 body.header div.main-logo img {
     align-self: center;
 }
@@ -291,4 +297,10 @@ div.screen-container::-webkit-scrollbar-track {
 div.screen-container::-webkit-scrollbar-thumb {
     background-color: #745792; /* color of the scroll thumb */
     border-radius: 6px; /* roundness of the scroll thumb */
+}
+
+img, button, a, div {
+    -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+    user-select: none;
 }

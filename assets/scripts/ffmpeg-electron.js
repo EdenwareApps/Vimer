@@ -1,9 +1,5 @@
-const fs = require('fs'), path = require('path'), Events = require('events')
 
-let EXECUTABLE = process.platform == 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
-let EXECUTABLEDIR = (process.resourcesPath || path.resolve('ffmpeg')).replace(new RegExp('\\\\+','g'), '/')
-
-class FFmpegBase extends Events {
+class FFmpegBase extends EventEmitter {
 	constructor(){
 		super()
 		this.childs = {}
@@ -43,84 +39,7 @@ class FFmpegBase extends Events {
 	}
 }
 
-class FFmpegDownloader extends FFmpegBase {
-	constructor(){
-		super()
-	}
-	dl(){
-		return getElectronRemote().getGlobal('Download')
-	}
-	async download(target, osd, mask) {
-		const Download = this.dl()
-		const tmpZipFile = path.join(target, 'ffmpeg.zip')
-		const arch = process.arch == 'x64' ? 64 : 32
-		let osName
-		switch (process.platform) {
-			case 'darwin':
-				osName = 'macos'
-				break
-			case 'win32':
-				osName = 'windows'
-				break
-			default:
-				osName = 'linux'
-				break
-		}
-		const variant = osName + '-' + arch
-		const url = await this.getVariantURL(variant)
-		osd.show(mask.replace('{0}', '0%'), 'fas fa-circle-notch fa-spin', 'ffmpeg-dl', 'persistent')
-		await Download.file({
-			url,
-			file: tmpZipFile,
-			progress: p => {
-				osd.show(mask.replace('{0}', p + '%'), 'fas fa-circle-notch fa-spin', 'ffmpeg-dl', 'persistent')
-			}
-		})
-		const AdmZip = require('adm-zip')
-		const zip = new AdmZip(tmpZipFile)
-		const entryName = process.platform == 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
-		const targetFile = path.join(target, entryName)
-		zip.extractEntryTo(entryName, target, false, true)
-		fs.unlink(tmpZipFile, () => {})
-		return targetFile
-	}
-	async check(osd, mask, folder){
-		try {
-			await fs.promises.access(path.join(EXECUTABLEDIR, EXECUTABLE), fs.constants.F_OK)
-			return true
-		} catch (error) {
-			try {
-				await fs.promises.access(path.join(folder, EXECUTABLE), fs.constants.F_OK)
-				EXECUTABLEDIR = folder
-				return true
-			} catch (error) {
-				let err
-				const file = await this.download(folder, osd, mask).catch(e => err = e)
-				if (err) {
-					osd.show(String(err), 'fas fa-exclamation-triangle faclr-red', 'ffmpeg-dl', 'normal')
-				} else {
-					osd.show(mask.replace('{0}', '100%'), 'fas fa-circle-notch fa-spin', 'ffmpeg-dl', 'normal')
-					EXECUTABLEDIR = path.dirname(file)
-					EXECUTABLE = path.basename(file)
-					return true
-				}
-			}
-		}
-		return false
-	}
-	async getVariantURL(variant){
-		const Download = this.dl()
-		const data = await Download.get({url: 'https://ffbinaries.com/api/v1/versions', responseType: 'json'})
-		for(const version of Object.keys(data.versions).sort().reverse()){
-			const versionInfo = await Download.get({url: data.versions[version], responseType: 'json'})
-			if(versionInfo.bin && typeof(versionInfo.bin[variant]) != 'undefined'){
-				return versionInfo.bin[variant].ffmpeg
-			}
-		}
-	}
-}
-
-class FFmpeg extends FFmpegDownloader {
+class FFmpeg extends FFmpegBase {
 	constructor(){
 		super()
 		this.Process = FFmpegProcess
@@ -174,15 +93,9 @@ class FFmpegProcess extends FFmpegBase {
 		return s.indexOf('Stream mapping:') != -1
 	}
 	start(){
-		let exe = EXECUTABLEDIR +'/'+ EXECUTABLE, hasErr, gotMetadata, output = ''
-		const child = this.child = require('child_process').spawn(exe, this.cmd, {
-			cwd: this.opts.workDir || EXECUTABLEDIR, 
-			killSignal: 'SIGINT'
-		})
-		const maxLogLength = (4 * 1024), log = s => {
-			s = String(s)
-			output += s
-			console.log(s)
+		let hasErr, output = ''
+		const maxLogLength = (4 * 1024)
+		const checkProgress = s => {			
 			if(this.duration == -1) {
 				const match = s.match(new RegExp('Duration: *(\\d+:\\d+:\\d+)'))
 				if(match) {
@@ -196,6 +109,9 @@ class FFmpegProcess extends FFmpegBase {
 					this.progress && this.emit('progress', this.progress)
 				}
 			}
+		}
+		const metadataListener = s => {
+			checkProgress(s)
 			if(!this.dimensions) {
 				let match = s.match(new RegExp('[0-9]{2,5}x[0-9]{2,5}'))
 				if(match && match.length) {
@@ -219,31 +135,34 @@ class FFmpegProcess extends FFmpegBase {
 					this.codecs = {audio, video}
 				}
 			}
-			if(!gotMetadata && this.isMetadata(s)){
-				gotMetadata = true
-				this.emit('metadata', output)
-			}
+			this.emit('metadata', output)
+		}
+		const dataListener = s => {
+			s = String(s)
+			output += s
+			console.log(s)
+			checkProgress(s)
 			if(output.length > maxLogLength){
 				output = output.substr(-maxLogLength)
 			}       
 		}
-		child.stdout.on('data', log)
-		child.stderr.on('data', log)
-		child.on('error', err => {
-			hasErr = err
-			console.log('FFEXEC ERR', this.cmd, child, err, output)
-            output += "\n"+ err +"\n"
-		})
-		console.log('FFEXEC '+ EXECUTABLE, this.cmd, child)
 		return new Promise((resolve, reject) => {
-			child.once('close', () => {
-				console.log('FFEXEC DONE', this.cmd.join(' '), child, output)
-				this.emit('progress', 100)
-				this.emit('end', output)
-				child.removeAllListeners()
-				if(this.aborted) return reject('Aborted')
-				if(hasErr) return reject(hasErr)
-				resolve(output)
+			api.ffmpeg.exec(this.cmd, {
+				metadata: metadataListener,
+				data: dataListener,
+				error: err => {
+					hasErr = err
+					console.log('FFEXEC ERR', this.cmd, err)
+					output += "\n"+ err +"\n"
+				},
+				finish: () => {
+					console.log('FFEXEC DONE', this.cmd.join(' '))
+					this.emit('progress', 100)
+					this.emit('end', output)
+					if(this.aborted) return reject('Aborted')
+					if(hasErr) return reject(hasErr)
+					resolve(output)
+				}
 			})
 		})
 	}
