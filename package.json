@@ -1,19 +1,14 @@
 {
   "name": "vimer",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Vimer is an AI powered app with a hassle-free interface for adjusting audio and video.",
   "main": "main.js",
-  "scripts": {
-    "start": "electron ."
-  },
   "window": {
     "title": "Vimer"
   },
   "author": "Edenware",
   "license": "MPL-2.0",
-  "devDependencies": {
-    "electron": "^9.1.2"
-  },
+  "devDependencies": {},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/EdenwareApps/Vimer.git"
@@ -28,13 +23,24 @@
   },
   "homepage": "https://github.com/EdenwareApps/Vimer#readme",
   "dependencies": {
+    "@electron/remote": "^2.1.2",
     "@fortawesome/fontawesome-free": "^6.4.2",
     "adm-zip": "github:efoxbr/adm-zip",
     "axios": "^1.6.3",
+    "electron": "^28.2.0",
     "env-paths": "^2.2.1",
     "formidable": "^2.1.1",
     "jquery": "^3.7.1",
     "openai": "^4.19.1",
     "sanitize-filename": "^1.6.3"
+  },
+  "bin": {
+    "megacubo": "./bin.js",
+    "megacubo-debug": "./bin-debug.js"
+  },
+  "scripts": {
+    "start": "electron .",
+    "debug": "electron  --inspect --enable-logging=stderr --trace-warnings --remote-debugging-port=9222 .",
+    "lint": "echo \"No linting configured\""
   }
 }
