@@ -12,6 +12,17 @@ As for security, the application exclusively executes FFmpeg commands and allows
 
 <br /><br />
 
+<p align="center">
+  <img src="https://edenware.app/images/project-1.png" width="800" height="450" alt="Vimer UI" title="Vimer UI" />
+</p>
+
+<p align="center">
+  <img src="https://edenware.app/vimer/files/screenshot.jpg" width="800" height="450" alt="Vimer UI" title="Vimer UI" />
+</p>
+
+<br /><br />
+
+
 # Releases
 Want to use the software, go to [our releases folder](https://github.com/EdenwareApps/Vimer/releases/latest) to get it.
 
