@@ -2,7 +2,7 @@
 <p align="center">
   <img src="https://edenware.app/vimer/files/box.png" width="217" height="275" alt="Vimer logo" title="Vimer logo" />
 </p>
-Vimer (VIdeo transforMER) is an AI powered app with a hassle-free interface for adjusting audio and video.
+Vimer (VIdeo transforMER) is an AI powered GUI for FFmpeg, a cross-platfom and multilanguage app with a hassle-free interface for adjusting audio and video.
 <br /><br />
 You just need to choose the files you want to change, describe what you want and let the artificial intelligence take care of the rest, automatically generating and executing the necessary FFmpeg commands. Forget complicated codes.
 <br /><br />
