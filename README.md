@@ -28,11 +28,11 @@ Want to use the software, go to [our releases folder](https://github.com/Edenwar
 
 If you are on Linux, you can also download and install easily by running the following command on your terminal:
 ```
-wget -qO- https://megacubo.tv/install.sh | bash
+wget -qO- https://edenware.app/vimer/install.sh | bash
 ```
 ... and uninstall it by running:
 ```
-wget -qO- https://megacubo.tv/uninstall.sh | bash
+wget -qO- https://edenware.app/vimer/uninstall.sh | bash
 ```
 
 <br /><br />
