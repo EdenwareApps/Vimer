@@ -1,4 +1,6 @@
 module.exports = {
-    "openai-api-key": "",
-    "openai-model-name": "gpt-3.5-turbo"
+    "llm-provider": "openai",
+    "llm-api-key": "",
+    "llm-endpoint": "",
+    "llm-model-name": "gpt-4o-mini"
 }

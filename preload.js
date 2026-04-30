@@ -90,8 +90,13 @@ class FFmpegDownloader {
 		const AdmZip = require('adm-zip')
 		const zip = new AdmZip(tmpZipFile)
 		const entryName = process.platform == 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
+		const entry = zip.getEntry(entryName) || zip.getEntries().find(e => path.basename(e.entryName) === entryName)
+		if (!entry) {
+			fs.unlink(tmpZipFile, () => {})
+			throw new Error('FFmpeg executable not found inside downloaded archive')
+		}
 		const targetFile = path.join(target, entryName)
-		zip.extractEntryTo(entryName, target, false, true)
+		zip.extractEntryTo(entry.entryName, target, false, true)
 		fs.unlink(tmpZipFile, () => {})
 		return targetFile
 	}
@@ -138,25 +143,85 @@ class FFMpeg extends FFmpegDownloader {
 		if(process.platform == 'win32'){
 			this.executable += '.exe'
 		}
-		this.executableDir = process.resourcesPath || path.resolve('ffmpeg')
-		this.executableDir = this.executableDir.replace(new RegExp('\\\\', 'g'), '/')
-		if(this.executableDir.indexOf('resources/app') != -1) {
-			this.executableDir = this.executableDir.split('resources/app').shift() +'resources'
-		}
-		this.executable = path.basename(this.executable)
 		this.tmpdir = paths.temp;
+		const staticPath = this.findStaticPath()
+		if(staticPath){
+			this.executable = path.basename(staticPath)
+			this.executableDir = path.dirname(staticPath)
+		} else {
+			this.executableDir = this.resolveExecutableDir()
+		}
 		['exec', 'cleanup', 'check', 'abort'].forEach(k => {
 			this[k] = this[k].bind(this) // allow export on contextBridge
 		})
+	}
+
+	normalizeStaticPath(filePath){
+		if (!filePath || !process.resourcesPath) return filePath
+		const asarMarker = path.join('app.asar', '')
+		if (filePath.includes(asarMarker)) {
+			const rel = path.relative(path.join(process.resourcesPath, 'app.asar'), filePath)
+			const unpacked = path.join(process.resourcesPath, 'app.asar.unpacked', rel)
+			if (fs.existsSync(unpacked)) {
+				return unpacked
+			}
+		}
+		return filePath
+	}
+
+	findStaticPath(){
+		try {
+			const staticPath = require('ffmpeg-static')
+			return this.normalizeStaticPath(staticPath)
+		} catch (e) {
+			return null
+		}
+	}
+
+	resolveExecutableDir(){
+		const candidates = []
+		if(process.resourcesPath) {
+			candidates.push(process.resourcesPath)
+			candidates.push(path.join(process.resourcesPath, 'ffmpeg'))
+			candidates.push(path.join(process.resourcesPath, 'app.asar.unpacked'))
+			candidates.push(path.join(process.resourcesPath, 'app.asar.unpacked', 'ffmpeg'))
+		}
+		if(this.tmpdir) {
+			candidates.push(this.tmpdir)
+			candidates.push(path.join(this.tmpdir, 'ffmpeg'))
+		}
+		candidates.push(path.resolve('ffmpeg'))
+		candidates.push(path.resolve('.'))
+
+		for(const candidate of candidates){
+			try {
+				const exePath = path.join(candidate, this.executable)
+				if(fs.existsSync(exePath)){
+					return candidate
+				}
+			} catch(e) {}
+		}
+
+		return process.resourcesPath || this.tmpdir || path.resolve('ffmpeg')
 	}
 	isMetadata(s){
 		return s.indexOf('Stream mapping:') != -1
 	}
 	exec(cmd, events){
-		let exe, gotMetadata, output = ''
-		if(process.platform == 'linux' || process.platform == 'darwin'){ // cwd was not being honored on Linux/macOS
-			exe = this.executableDir +'/'+ this.executable
-		} else {
+		let gotMetadata, output = ''
+		let exePath = path.join(this.executableDir, this.executable)
+		let exe = exePath
+		if (!fs.existsSync(exePath) && process.resourcesPath) {
+			const asarMarker = path.join('app.asar', '')
+			if (exePath.includes(asarMarker)) {
+				const rel = path.relative(path.join(process.resourcesPath, 'app.asar'), exePath)
+				const unpacked = path.join(process.resourcesPath, 'app.asar.unpacked', rel)
+				if (fs.existsSync(unpacked)) {
+					exe = unpacked
+				}
+			}
+		}
+		if(!fs.existsSync(exe)){
 			exe = this.executable
 		}
 		const child = spawn(exe, cmd, {

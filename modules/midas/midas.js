@@ -1,7 +1,133 @@
 const fs = require('fs'), path = require('path')
-require('openai/shims/node')
-const OpenAI = require('openai')
+const axios = require('axios')
 const Prompts = require('./prompts')
+
+const PROVIDER_ENDPOINTS = {
+    openai: 'https://api.openai.com/v1',
+    claude: 'https://api.anthropic.com/v1',
+    gemini: 'https://generativelanguage.googleapis.com/v1',
+    grok: 'https://api.grok.x.ai/v1',
+    deepseek: 'https://api.deepseek.com'
+}
+
+const PROVIDER_DEFAULT_MODELS = {
+    deepseek: 'deepseek-v4-pro'
+}
+
+const PROVIDER_ADAPTERS = {
+    openai: {
+        buildRequest({ endpoint, apiKey, model, messages, temperature }) {
+            const base = (endpoint || PROVIDER_ENDPOINTS.openai).replace(/\/+$/, '')
+            return {
+                url: base + '/chat/completions',
+                headers: {
+                    'Authorization': 'Bearer ' + apiKey,
+                    'Content-Type': 'application/json'
+                },
+                data: {
+                    model,
+                    messages,
+                    temperature
+                }
+            }
+        },
+        parseResponse(body) {
+            return body?.choices?.[0]?.message?.content || body?.choices?.[0]?.text || ''
+        }
+    },
+    claude: {
+        buildRequest({ endpoint, apiKey, model, messages, temperature }) {
+            const base = (endpoint || PROVIDER_ENDPOINTS.claude).replace(/\/+$/, '')
+            return {
+                url: base + '/messages',
+                headers: {
+                    'x-api-key': apiKey,
+                    'anthropic-version': '2023-06-01',
+                    'Content-Type': 'application/json'
+                },
+                data: {
+                    model,
+                    max_tokens: 1024,
+                    temperature,
+                    messages: messages.map(m => ({
+                        role: m.role === 'assistant' ? 'assistant' : 'user',
+                        content: m.content
+                    }))
+                }
+            }
+        },
+        parseResponse(body) {
+            return String(body?.content?.[0]?.text || '')
+        }
+    },
+    gemini: {
+        buildRequest({ endpoint, apiKey, model, messages, temperature }) {
+            const base = (endpoint || PROVIDER_ENDPOINTS.gemini).replace(/\/+$/, '')
+            const text = messages.map(m => {
+                const prefix = m.role === 'assistant' ? 'Assistant:' : m.role === 'system' ? 'System:' : 'User:'
+                return prefix + ' ' + m.content
+            }).join('\n')
+            return {
+                url: base + '/models/' + encodeURIComponent(model) + ':generateContent',
+                headers: {
+                    'Authorization': 'Bearer ' + apiKey,
+                    'Content-Type': 'application/json'
+                },
+                data: {
+                    contents: [
+                        {
+                            parts: [{ text }]
+                        }
+                    ],
+                    temperature
+                }
+            }
+        },
+        parseResponse(body) {
+            return body?.candidates?.[0]?.content?.parts?.[0]?.text || ''
+        }
+    },
+    deepseek: {
+        buildRequest({ endpoint, apiKey, model, messages, temperature }) {
+            const base = (endpoint || PROVIDER_ENDPOINTS.deepseek).replace(/\/+$/, '')
+            return {
+                url: base + '/chat/completions',
+                headers: {
+                    'Authorization': 'Bearer ' + apiKey,
+                    'Content-Type': 'application/json'
+                },
+                data: {
+                    model,
+                    messages,
+                    temperature
+                }
+            }
+        },
+        parseResponse(body) {
+            return body?.choices?.[0]?.message?.content || body?.choices?.[0]?.text || ''
+        }
+    },
+    grok: {
+        buildRequest({ endpoint, apiKey, model, messages, temperature }) {
+            const base = (endpoint || PROVIDER_ENDPOINTS.grok).replace(/\/+$/, '')
+            return {
+                url: base + '/chat/completions',
+                headers: {
+                    'Authorization': 'Bearer ' + apiKey,
+                    'Content-Type': 'application/json'
+                },
+                data: {
+                    model,
+                    messages,
+                    temperature
+                }
+            }
+        },
+        parseResponse(body) {
+            return body?.choices?.[0]?.message?.content || body?.choices?.[0]?.text || ''
+        }
+    }
+}
 
 class Masker {
     constructor(){
@@ -131,34 +257,50 @@ class FormatInfo {
 class Midas {
     constructor(opts={}){
         this.opts = Object.assign({
-            modelName: 'gpt-3.5-turbo',
+            modelName: 'gpt-4o-mini',
             language: 'English'
         }, opts)
         this.masker = new Masker()
         this.fmt = new FormatInfo()
     }
-    load(apiKey){
-        if(this.openai && this.apiKey == apiKey) return
+    load(apiKey, provider='openai', endpoint=''){
+        if(this.apiKey == apiKey && this.provider == provider && this.endpoint == endpoint) return
         this.apiKey = apiKey
-        this.openai = new OpenAI({
-            apiKey,
-            maxRetries: 1
-        })
+        this.provider = provider || 'openai'
+        this.endpoint = endpoint || ''
         this.messages = []
+        if(this.provider == 'deepseek'){
+            const currentModel = String(this.opts.modelName || '').trim()
+            if(!currentModel || currentModel.indexOf('deepseek') !== 0) {
+                this.opts.modelName = PROVIDER_DEFAULT_MODELS.deepseek
+            }
+        }
+        this.openai = null
     }
     async query(content, detached, role='user'){
         const message = { role, content }
         if(!detached) {
             this.messages.push(message)
         }
-        console.log('QUERY='+ content)
-        const ret = await this.openai.chat.completions.create({
-            messages: detached ? [message] : this.messages.slice(this.messages.length - 3),
-            temperature: 0.1,
-            model: this.opts.modelName
-            // model: 'text-davinci-003'
+        const messages = detached ? [message] : this.messages.slice(-6)
+        const adapter = PROVIDER_ADAPTERS[this.provider] || PROVIDER_ADAPTERS.openai
+        const request = adapter.buildRequest({
+            endpoint: this.endpoint,
+            apiKey: this.apiKey,
+            model: this.opts.modelName,
+            messages,
+            temperature: 0.1
         })
-        return ret.choices[0].message.content
+        console.log('QUERY('+ this.provider +')='+ content)
+        const response = await axios.post(request.url, request.data, {
+            headers: request.headers,
+            timeout: 120000
+        })
+        const text = adapter.parseResponse(response.data)
+        if(!text){
+            throw new Error('Unsupported response format from '+ this.provider)
+        }
+        return text
     }
     extractResult(text) {
         console.log("EXTRACTING COMMANDS FROM="+ text)

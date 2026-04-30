@@ -108,15 +108,22 @@
                 <div class="screen-container">
                     <h1 data-language="OPTIONS"></h1>
                     <p>
-                        <label for="openai-api-key">
-                            <font data-language="OPENAI_API_KEY"></font>
-                            (<a href="javascript:;" onclick="app.openExternalURL('https://platform.openai.com/api-keys')"><font data-language="REQUIRED"></font></a>)
-                        </label>
-                        <input type="text" id="openai-api-key" name="openai-api-key" value="" data-language="OPENAI_API_KEY" />
+                        <label for="llm-provider">Provider</label>
+                        <select id="llm-provider" name="llm-provider">
+                            <option value="openai">OpenAI</option>
+                            <option value="claude">Claude</option>
+                            <option value="gemini">Gemini</option>
+                            <option value="grok">Grok</option>
+                            <option value="deepseek">DeepSeek</option>
+                        </select>
                     </p>
                     <p>
-                        <label for="openai-model-name">OpenAI model</label>
-                        <input type="text" id="openai-model-name" name="openai-model-name" value="" data-language="OpenAI model" />
+                        <label for="llm-api-key">API key</label>
+                        <input type="text" id="llm-api-key" name="llm-api-key" value="" />
+                    </p>
+                    <p>
+                        <label for="llm-model-name">Model / engine</label>
+                        <input type="text" id="llm-model-name" name="llm-model-name" value="" />
                     </p>
                     <p class="option-center">
                         <span>

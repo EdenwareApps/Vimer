@@ -222,8 +222,9 @@ function getFileList() {
 
 var previousStep = 1
 function loadOptions(opts={}) {
-    document.querySelector('#openai-api-key').value = app.config.get('openai-api-key') || ''
-    document.querySelector('#openai-model-name').value = app.config.get('openai-model-name') || ''
+    document.querySelector('#llm-provider').value = app.config.get('llm-provider') || 'openai'
+    document.querySelector('#llm-api-key').value = app.config.get('llm-api-key') || app.config.get('openai-api-key') || ''
+    document.querySelector('#llm-model-name').value = app.config.get('llm-model-name') || app.config.get('openai-model-name') || ''
     document.querySelector('#save-log-files').checked = app.config.get('save-log-files') === true
     document.querySelector('#skip-command-review').checked = app.config.get('skip-command-review') === true
     document.querySelector('#command-optimization-level').selectedIndex = app.config.get('command-optimization-level') || 0
@@ -231,20 +232,22 @@ function loadOptions(opts={}) {
         const selected = k == app.locale ? 'selected' : ''
         return '<option value="'+ k +'" '+ selected +'>'+ app.availableLanguages[k] +'</option>'
     }).join('')
-    const hasKey = document.querySelector('#openai-api-key').value && !opts.badApiKey
-    document.querySelector('#openai-api-key').style.border = '1px solid '+ (hasKey ? '#bab0bf' : '#b02')
+    const hasKey = document.querySelector('#llm-api-key').value && !opts.badApiKey
+    document.querySelector('#llm-api-key').style.border = '1px solid '+ (hasKey ? '#bab0bf' : '#b02')
     step(99)
 }
 
 function saveOptions() {
-    const k = document.querySelector('#openai-api-key')
-    const m = document.querySelector('#openai-model-name')
+    const p = document.querySelector('#llm-provider')
+    const k = document.querySelector('#llm-api-key')
+    const m = document.querySelector('#llm-model-name')
     const l = document.querySelector('#locale')
     const s = document.querySelector('#skip-command-review')
     const g = document.querySelector('#save-log-files')
     const c = document.querySelector('#command-optimization-level')
-    app.config.set('openai-api-key', k.value.trim())
-    app.config.set('openai-model-name', m.value.trim())
+    app.config.set('llm-provider', p.value)
+    app.config.set('llm-api-key', k.value.trim())
+    app.config.set('llm-model-name', m.value.trim())
     app.config.set('locale', l.querySelectorAll('option')[l.selectedIndex].value)
     app.config.set('command-optimization-level', c.querySelectorAll('option')[c.selectedIndex].value)
     app.config.set('skip-command-review', s.checked)
@@ -344,6 +347,18 @@ function loaded() {
             saveOptions()
         }
     })
+    const providerSelect = document.querySelector('#llm-provider')
+    if(providerSelect) {
+        providerSelect.addEventListener('change', () => {
+            const modelField = document.querySelector('#llm-model-name')
+            if(providerSelect.value == 'deepseek' && modelField) {
+                const current = modelField.value.trim()
+                if(!current || current.startsWith('gpt-')) {
+                    modelField.value = 'deepseek-v4-pro'
+                }
+            }
+        })
+    }
     app.on('new-version', (versions, url) => {
         if(confirm(app.lang.NEW_VERSION_AVAILABLE)) {
             app.openExternalURL(url)

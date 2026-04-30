@@ -247,7 +247,8 @@ div#options-icon {
 }
 
 div#options-icon a {
-    font-size: 7vh;
+    font-size: 5vh;
+    margin: 0 2vh;
     color: #391259 !important;
 }
 

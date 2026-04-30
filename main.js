@@ -58,7 +58,7 @@ global.midas = new Midas({
     cwd: global.paths.temp
 })
 
-function askOpenAIKey() {
+function askLLMKey() {
     return new Promise(resolve => {
         global.ui.emit('ask-openai-api-key')
         global.ui.once('config-set', () => resolve())
@@ -66,20 +66,26 @@ function askOpenAIKey() {
 }
 
 async function midasGenerate(opts) {
-    if(!global.config.get('openai-api-key')) await askOpenAIKey()
-    global.midas.load(global.config.get('openai-api-key'))
-    let err
-    const currentModelName = global.config.get('openai-model-name')
+    const apiKey = global.config.get('llm-api-key') || global.config.get('openai-api-key')
+    if(!apiKey) await askLLMKey()
+    const provider = global.config.get('llm-provider') || 'openai'
+    const endpoint = global.config.get('llm-endpoint') || ''
+    const currentModelName = global.config.get('llm-model-name') || global.config.get('openai-model-name')
     if(currentModelName && currentModelName != global.midas.opts.modelName) {
         global.midas.opts.modelName = currentModelName
     }
+    global.midas.load(apiKey, provider, endpoint)
+    let err
     global.midas.skipDescription = global.config.get('skip-command-review')
     global.midas.opts.language = global.lang.LANGUAGE_NAME +' ('+ global.lang.locale.toUpperCase() +')'
     const ret = await global.midas.getFFmpegCommands(opts.prompt, opts.files).catch(e => err = e)
     if(err) {
         if(String(err).indexOf('API key') != -1) {
-            await askOpenAIKey()
-            global.midas.load(global.config.get('openai-api-key'))
+            await askLLMKey()
+            const retryKey = global.config.get('llm-api-key') || global.config.get('openai-api-key')
+            const retryProvider = global.config.get('llm-provider') || provider
+            const retryEndpoint = global.config.get('llm-endpoint') || endpoint
+            global.midas.load(retryKey, retryProvider, retryEndpoint)
             return await midasGenerate(opts)
         } else {
             global.ui.emit('midas-generated-'+ opts.uid, {err: err.message +' '+ err.stack})
